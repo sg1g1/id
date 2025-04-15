@@ -291,21 +291,30 @@
       }
 
       try {
+        // تهيئة التخزين في GitHub
+        initGithubStorage();
+        
+        // محاولة جلب البيانات
         const users = await getUsers();
-        if (users[passcode]) {
+        console.log('تم جلب البيانات:', users); // للتشخيص
+
+        if (users && users[passcode]) {
           currentUser = passcode;
           document.getElementById("auth").style.display = "none";
           document.getElementById("dashboard").style.display = "block";
           document.getElementById("playerName").textContent = users[passcode].username;
           await updateSections();
           await renderFriendsView();
+          console.log('تم تسجيل الدخول بنجاح'); // للتشخيص
         } else {
-          alert("رمز الدخول غير صحيح");
+          console.log('بيانات المستخدمين:', users); // للتشخيص
+          console.log('رمز الدخول المدخل:', passcode); // للتشخيص
+          alert("رمز الدخول غير صحيح أو لم يتم العثور على البيانات");
           document.getElementById("passcode").value = "";
         }
       } catch (error) {
         console.error('خطأ في تسجيل الدخول:', error);
-        alert("حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.");
+        alert("حدث خطأ أثناء تسجيل الدخول. يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.");
       }
     }
 
