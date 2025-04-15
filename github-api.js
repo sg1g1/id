@@ -52,39 +52,67 @@ class GitHubStorage {
    */
   async getData(forceUpdate = false) {
     try {
+      // التحقق من وجود رمز الوصول
+      if (!this.token) {
+        throw new Error('رمز الوصول غير متوفر');
+      }
+
       // التحقق من وقت آخر تحديث لتجنب التحديثات المتكررة
       const now = Date.now();
       if (!forceUpdate && (now - this.lastFetchTime) < this.pollingInterval) {
-        return JSON.parse(localStorage.getItem("genshinUsers") || "{}");
+        const cachedData = localStorage.getItem("genshinUsers");
+        if (cachedData) {
+          try {
+            return JSON.parse(cachedData);
+          } catch (e) {
+            console.error('خطأ في قراءة البيانات المخزنة محلياً:', e);
+          }
+        }
       }
 
       const response = await fetch(`https://api.github.com/repos/${this.owner}/${this.repo}/contents/${this.path}`, {
-        headers: this.token ? { 'Authorization': `token ${this.token}` } : {}
+        headers: { 'Authorization': `token ${this.token}` }
       });
 
       if (response.status === 404) {
-        // الملف غير موجود، إرجاع كائن فارغ
+        console.warn('الملف غير موجود على GitHub');
         return {};
       }
 
       if (!response.ok) {
-        throw new Error(`فشل في جلب البيانات: ${response.status}`);
+        throw new Error(`فشل في جلب البيانات (${response.status}): ${response.statusText}`);
       }
 
       const data = await response.json();
+      if (!data.content) {
+        throw new Error('محتوى الملف غير صالح');
+      }
+
       // فك تشفير المحتوى من Base64
-      const content = atob(data.content);
-      const parsedData = JSON.parse(content);
-      
-      // تحديث التخزين المحلي والوقت
-      localStorage.setItem("genshinUsers", JSON.stringify(parsedData));
-      this.lastFetchTime = now;
-      
-      return parsedData;
+      try {
+        const content = atob(data.content);
+        const parsedData = JSON.parse(content);
+
+        // تحديث التخزين المحلي والوقت
+        localStorage.setItem("genshinUsers", JSON.stringify(parsedData));
+        this.lastFetchTime = now;
+
+        return parsedData;
+      } catch (e) {
+        throw new Error('خطأ في معالجة البيانات: ' + e.message);
+      }
     } catch (error) {
       console.error('خطأ في جلب البيانات من GitHub:', error);
-      // استخدام التخزين المحلي كنسخة احتياطية
-      return JSON.parse(localStorage.getItem("genshinUsers") || "{}");
+      // محاولة استخدام البيانات المخزنة محلياً
+      const cachedData = localStorage.getItem("genshinUsers");
+      if (cachedData) {
+        try {
+          return JSON.parse(cachedData);
+        } catch (e) {
+          console.error('خطأ في قراءة البيانات المخزنة محلياً:', e);
+        }
+      }
+      return {};
     }
   }
 
