@@ -150,6 +150,15 @@
     <button onclick="login()">دخول</button>
   </div>
 
+  <div id="githubSetup" style="margin-top: 20px; background: rgba(0,151,167,0.7); padding: 20px; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,131,143,0.3);">
+    <h3>إعدادات GitHub</h3>
+    <p>قم بإدخال معلومات مستودع GitHub الخاص بك لتخزين البيانات</p>
+    <input type="text" id="githubOwner" placeholder="اسم المستخدم/المنظمة على GitHub"><br>
+    <input type="text" id="githubRepo" placeholder="اسم المستودع"><br>
+    <input type="text" id="githubToken" placeholder="رمز الوصول الشخصي (اختياري)"><br>
+    <button onclick="saveGithubSettings()">حفظ الإعدادات</button>
+  </div>
+
   <div id="dashboard">
     <h3>أهلاً، <span id="playerName"></span>!</h3>
     <button onclick="logout()">تسجيل الخروج</button>
@@ -180,18 +189,116 @@
     <ul id="friendList"></ul>
   </div>
 
+  <!-- إضافة ملف GitHub API -->
+  <script src="github-api.js"></script>
+  
   <script>
     let currentUser = null;
+    let githubStorage = null;
 
-    function getUsers() {
+    // التحقق من وجود إعدادات GitHub محفوظة
+    function initGithubStorage() {
+      const settings = JSON.parse(localStorage.getItem("githubSettings") || "{}");
+      if (settings.owner && settings.repo) {
+        document.getElementById("githubOwner").value = settings.owner;
+        document.getElementById("githubRepo").value = settings.repo;
+        document.getElementById("githubToken").value = settings.token || "";
+        
+        githubStorage = new GitHubStorage({
+          owner: settings.owner,
+          repo: settings.repo,
+          token: settings.token
+        });
+        
+        // إخفاء نموذج الإعدادات إذا كانت الإعدادات موجودة
+        document.getElementById("githubSetup").style.display = "none";
+        return true;
+      }
+      return false;
+    }
+    
+    // حفظ إعدادات GitHub
+    function saveGithubSettings() {
+      const owner = document.getElementById("githubOwner").value.trim();
+      const repo = document.getElementById("githubRepo").value.trim();
+      const token = document.getElementById("githubToken").value.trim();
+      
+      if (!owner || !repo) {
+        alert("يرجى إدخال اسم المستخدم واسم المستودع على الأقل");
+        return;
+      }
+      
+      const settings = { owner, repo, token };
+      localStorage.setItem("githubSettings", JSON.stringify(settings));
+      
+      githubStorage = new GitHubStorage(settings);
+      
+      alert("تم حفظ إعدادات GitHub بنجاح!");
+      document.getElementById("githubSetup").style.display = "none";
+    }
+
+    // تنفيذ التهيئة عند تحميل الصفحة
+    window.addEventListener('DOMContentLoaded', () => {
+      initGithubStorage();
+    });
+
+    // وظائف للتعامل مع البيانات
+    async function getUsers() {
+      // إذا كانت إعدادات GitHub متوفرة، استخدمها
+      if (githubStorage) {
+        try {
+          return await githubStorage.getData();
+        } catch (error) {
+          console.error('خطأ في جلب البيانات من GitHub:', error);
+        }
+      }
+      
+      // محاولة استخدام الخادم المحلي كخيار ثانوي
+      try {
+        const response = await fetch('api.php');
+        if (response.ok) {
+          return await response.json();
+        }
+      } catch (error) {
+        console.error('خطأ في جلب البيانات من الخادم:', error);
+      }
+      
+      // استخدام التخزين المحلي كنسخة احتياطية
       return JSON.parse(localStorage.getItem("genshinUsers") || "{}");
     }
 
-    function saveUsers(users) {
-      localStorage.setItem("genshinUsers", JSON.stringify(users));
+    async function saveUsers(users) {
+      // إذا كانت إعدادات GitHub متوفرة، استخدمها
+      if (githubStorage) {
+        try {
+          const success = await githubStorage.saveData(users);
+          if (success) return;
+        } catch (error) {
+          console.error('خطأ في حفظ البيانات على GitHub:', error);
+        }
+      }
+      
+      // محاولة استخدام الخادم المحلي كخيار ثانوي
+      try {
+        const response = await fetch('api.php', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(users)
+        });
+        
+        if (!response.ok) {
+          throw new Error('فشل في حفظ البيانات على الخادم');
+        }
+      } catch (error) {
+        console.error('خطأ في حفظ البيانات على الخادم:', error);
+        // حفظ البيانات محلياً كنسخة احتياطية
+        localStorage.setItem("genshinUsers", JSON.stringify(users));
+      }
     }
 
-    function register() {
+    async function register() {
       const username = document.getElementById('username').value.trim();
       const passcode = document.getElementById('passcode').value.trim();
 
@@ -200,28 +307,28 @@
         return;
       }
 
-      const users = getUsers();
+      const users = await getUsers();
       if (users[passcode]) {
         alert("الرمز مستخدم مسبقًا. جرب رمزًا آخر.");
         return;
       }
 
       users[passcode] = { username, sections: [], friends: [] };
-      saveUsers(users);
+      await saveUsers(users);
       alert("تم التسجيل بنجاح!");
     }
 
-    function login() {
+    async function login() {
       const passcode = document.getElementById('passcode').value.trim();
-      const users = getUsers();
+      const users = await getUsers();
 
       if (users[passcode]) {
         currentUser = passcode;
         document.getElementById("auth").style.display = "none";
         document.getElementById("dashboard").style.display = "block";
         document.getElementById("playerName").textContent = users[passcode].username;
-        updateSections();
-        renderFriendsView();
+        await updateSections();
+        await renderFriendsView();
       } else {
         alert("رمز دخول غير صحيح.");
       }
@@ -235,24 +342,24 @@
       document.getElementById("passcode").value = "";
     }
 
-    function addSection() {
+    async function addSection() {
       const sectionName = document.getElementById('sectionName').value.trim();
       if (!sectionName) return alert("يرجى إدخال اسم القسم.");
 
-      const users = getUsers();
+      const users = await getUsers();
       const user = users[currentUser];
       if (!user.sections.includes(sectionName)) {
         user.sections.push(sectionName);
-        saveUsers(users);
-        updateSections();
+        await saveUsers(users);
+        await updateSections();
         document.getElementById('sectionName').value = "";
       } else {
         alert("القسم موجود بالفعل.");
       }
     }
 
-    function updateSections() {
-      const users = getUsers();
+    async function updateSections() {
+      const users = await getUsers();
       const user = users[currentUser];
       const sectionSelect = document.getElementById('sectionSelect');
       const viewSelect = document.getElementById('viewSelect');
@@ -273,7 +380,7 @@
       });
     }
 
-    function addFriend() {
+    async function addFriend() {
       const friendName = document.getElementById('friendName').value.trim();
       const friendID = document.getElementById('friendID').value.trim();
       const section = document.getElementById('sectionSelect').value;
@@ -283,18 +390,18 @@
         return;
       }
 
-      const users = getUsers();
+      const users = await getUsers();
       const user = users[currentUser];
       user.friends.push({ name: friendName, id: friendID, section });
-      saveUsers(users);
-      renderFriendsView();
+      await saveUsers(users);
+      await renderFriendsView();
 
       document.getElementById('friendName').value = "";
       document.getElementById('friendID').value = "";
     }
 
-    function renderFriendsView() {
-      const users = getUsers();
+    async function renderFriendsView() {
+      const users = await getUsers();
       const user = users[currentUser];
       const selectedView = document.getElementById('viewSelect').value;
       const list = document.getElementById('friendList');
@@ -307,14 +414,22 @@
           li.textContent = `${f.name} - ID: ${f.id} ${selectedView === "all" ? `( ${f.section} )` : ""}`;
           
           const deleteBtn = document.createElement("button");
-          deleteBtn.innerHTML = "<span style='font-size:20px'>🗑️</span>";
+          deleteBtn.innerHTML = "<span style='font-size:16px'>🗑️</span>";
           deleteBtn.style.marginRight = "10px";
+          deleteBtn.style.borderRadius = "50%";
+          deleteBtn.style.width = "35px";
+          deleteBtn.style.height = "35px";
+          deleteBtn.style.padding = "5px";
           deleteBtn.onclick = () => deleteFriend(f.id);
           li.insertBefore(deleteBtn, li.firstChild);
           
           const copyBtn = document.createElement("button");
-          copyBtn.innerHTML = "<span style='font-size:20px'>📋</span>";
+          copyBtn.innerHTML = "<span style='font-size:16px'>📋</span>";
           copyBtn.style.marginRight = "10px";
+          copyBtn.style.borderRadius = "50%";
+          copyBtn.style.width = "35px";
+          copyBtn.style.height = "35px";
+          copyBtn.style.padding = "5px";
           copyBtn.onclick = () => {
             navigator.clipboard.writeText(f.id);
             alert("تم نسخ ID بنجاح!");
@@ -325,16 +440,16 @@
         });
     }
     
-    function deleteFriend(friendId) {
-      const users = getUsers();
+    async function deleteFriend(friendId) {
+      const users = await getUsers();
       const user = users[currentUser];
       user.friends = user.friends.filter(f => f.id !== friendId);
-      saveUsers(users);
-      renderFriendsView();
+      await saveUsers(users);
+      await renderFriendsView();
     }
     
-    function showSectionsList() {
-      const users = getUsers();
+    async function showSectionsList() {
+      const users = await getUsers();
       const user = users[currentUser];
       let sectionsList = "الأقسام:\n\n";
       
@@ -348,9 +463,9 @@
         if (sectionToDelete && user.sections.includes(sectionToDelete)) {
           user.sections = user.sections.filter(s => s !== sectionToDelete);
           user.friends = user.friends.filter(f => f.section !== sectionToDelete);
-          saveUsers(users);
-          updateSections();
-          renderFriendsView();
+          await saveUsers(users);
+          await updateSections();
+          await renderFriendsView();
           alert(`تم حذف قسم ${sectionToDelete} بنجاح!`);
         } else {
           alert("اسم القسم غير صحيح أو غير موجود.");
