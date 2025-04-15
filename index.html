@@ -360,7 +360,7 @@
       const loginError = document.getElementById('loginError');
       
       if (!passcode) {
-        loginError.textContent = "يرجى إدخال رمز الدخول";
+        loginError.textContent = "يرجى إدخال رمز الدخول الخاص بك";
         loginError.style.display = "block";
         return;
       }
@@ -372,35 +372,42 @@
         // محاولة جلب البيانات
         const users = await getUsers();
 
-        if (users && users[passcode]) {
-          // بدء المزامنة التلقائية للبيانات
-          githubStorage.startPolling(async (updatedData) => {
-            if (updatedData[passcode]) {
-              document.getElementById("playerName").textContent = updatedData[passcode].username;
-              await updateSections();
-              await renderFriendsView();
-            }
-          });
-          currentUser = passcode;
-          // حفظ حالة تسجيل الدخول
-          localStorage.setItem('currentUser', passcode);
-          
-          document.getElementById("auth").style.display = "none";
-          document.getElementById("dashboard").style.display = "block";
-          document.getElementById("playerName").textContent = users[passcode].username;
-          document.getElementById("loginTitle").style.display = "none";
-          loginError.style.display = "none";
-          await updateSections();
-          await renderFriendsView();
-        } else {
-          loginError.textContent = "رمز الدخول غير صحيح أو لم يتم العثور على البيانات";
+        if (!users) {
+          loginError.textContent = "حدث خطأ في الاتصال بالخادم. يرجى المحاولة مرة أخرى لاحقاً";
           loginError.style.display = "block";
-          document.getElementById("passcode").value = "";
+          return;
         }
+
+        if (!users[passcode]) {
+          loginError.textContent = "رمز الدخول غير صحيح. يرجى التأكد من الرمز وإعادة المحاولة";
+          loginError.style.display = "block";
+          return;
+        }
+
+        // بدء المزامنة التلقائية للبيانات
+        githubStorage.startPolling(async (updatedData) => {
+          if (updatedData[passcode]) {
+            document.getElementById("playerName").textContent = updatedData[passcode].username;
+            await updateSections();
+            await renderFriendsView();
+          }
+        });
+        currentUser = passcode;
+        // حفظ حالة تسجيل الدخول
+        localStorage.setItem('currentUser', passcode);
+        
+        document.getElementById("auth").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        document.getElementById("playerName").textContent = users[passcode].username;
+        document.getElementById("loginTitle").style.display = "none";
+        loginError.style.display = "none";
+        await updateSections();
+        await renderFriendsView();
       } catch (error) {
         console.error('خطأ في تسجيل الدخول:', error);
-        loginError.textContent = "حدث خطأ أثناء تسجيل الدخول. يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.";
+        loginError.textContent = "حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى";
         loginError.style.display = "block";
+        document.getElementById("passcode").value = "";
       }
     }
 
