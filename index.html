@@ -154,6 +154,8 @@
       box-shadow: 0 2px 5px rgba(0,131,143,0.2);
       transition: all 0.3s ease;
       list-style-type: none;
+      cursor: move;
+      user-select: none;
     }
     
     #friendList li:hover {
@@ -191,6 +193,7 @@
     <div id="loginError" style="color: #d32f2f; margin: 8px 0; display: none;"></div>
     <button onclick="register()">تسجيل جديد</button>
     <button onclick="login()">دخول</button>
+    <button onclick="loginAsGuest()" style="background: linear-gradient(135deg, #4CAF50, #388E3C)">دخول كضيف</button>
   </div>
 
   <div id="githubSetup" style="display: none;">
@@ -281,6 +284,10 @@
 
     // وظائف للتعامل مع البيانات
     async function getUsers() {
+      if (currentUser === 'guest') {
+        return JSON.parse(localStorage.getItem('guestData') || '{"sections": [], "friends": []}');
+      }
+      
       // إذا كانت إعدادات GitHub متوفرة، استخدمها
       if (githubStorage) {
         try {
@@ -305,6 +312,11 @@
     }
 
     async function saveUsers(users) {
+      if (currentUser === 'guest') {
+        localStorage.setItem('guestData', JSON.stringify(users));
+        return;
+      }
+      
       // إذا كانت إعدادات GitHub متوفرة، استخدمها
       if (githubStorage) {
         try {
@@ -355,12 +367,41 @@
       alert("تم التسجيل بنجاح!");
     }
 
+    async function loginAsGuest() {
+      currentUser = 'guest';
+      document.getElementById("auth").style.display = "none";
+      document.getElementById("dashboard").style.display = "block";
+      document.getElementById("playerName").textContent = 'ضيف';
+      document.getElementById("loginTitle").style.display = "none";
+      document.getElementById("loginError").style.display = "none";
+      
+      // استرجاع البيانات المحلية للضيف
+      const guestData = JSON.parse(localStorage.getItem('guestData') || '{"sections": [], "friends": []}')
+      await updateSections();
+      await renderFriendsView();
+    }
+
+    async function deleteAllAccounts() {
+      if (confirm('هل أنت متأكد من حذف جميع الحسابات؟')) {
+        localStorage.clear();
+        if (githubStorage) {
+          try {
+            await githubStorage.saveData({});
+          } catch (error) {
+            console.error('خطأ في حذف البيانات من GitHub:', error);
+          }
+        }
+        alert('تم حذف جميع الحسابات بنجاح!');
+      }
+    }
+
     async function login() {
       const passcode = document.getElementById('passcode').value.trim();
+      const token = document.getElementById('githubToken').value.trim();
       const loginError = document.getElementById('loginError');
       
-      if (!passcode) {
-        loginError.textContent = "يرجى إدخال رمز الدخول الخاص بك";
+      if (!passcode || !token) {
+        loginError.textContent = "يرجى إدخال رمز الدخول وتوكن GitHub";
         loginError.style.display = "block";
         return;
       }
@@ -368,6 +409,12 @@
       try {
         // تهيئة التخزين في GitHub
         initGithubStorage();
+        
+        if (!githubStorage) {
+          loginError.textContent = "فشل في تهيئة الاتصال بـ GitHub. يرجى التحقق من التوكن";
+          loginError.style.display = "block";
+          return;
+        }
         
         // محاولة جلب البيانات
         const users = await getUsers();
@@ -432,6 +479,7 @@
 
       const users = await getUsers();
       const user = users[currentUser];
+      if (!user.sections) user.sections = [];
       if (!user.sections.includes(sectionName)) {
         user.sections.push(sectionName);
         await saveUsers(users);
@@ -442,6 +490,26 @@
       }
     }
 
+    async function addFriend() {
+      const friendName = document.getElementById('friendName').value.trim();
+      const friendID = document.getElementById('friendID').value.trim();
+      const section = document.getElementById('sectionSelect').value;
+
+      if (!friendName || !friendID) {
+        alert("يرجى إدخال اسم الصديق و ID الصديق.");
+        return;
+      }
+
+      const users = await getUsers();
+      const user = users[currentUser];
+      user.friends.push({ name: friendName, id: friendID, section });
+      await saveUsers(users);
+      await renderFriendsView();
+
+      document.getElementById('friendName').value = "";
+      document.getElementById('friendID').value = "";
+    }
+
     async function updateSections() {
       const users = await getUsers();
       const user = users[currentUser];
@@ -450,6 +518,17 @@
 
       sectionSelect.innerHTML = "";
       viewSelect.innerHTML = `<option value="all">الكل</option>`;
+      
+      // إضافة قسم افتراضي
+      const defaultOption1 = document.createElement('option');
+      defaultOption1.value = "";
+      defaultOption1.textContent = "بدون قسم";
+      sectionSelect.appendChild(defaultOption1);
+
+      const defaultOption2 = document.createElement('option');
+      defaultOption2.value = "";
+      defaultOption2.textContent = "بدون قسم";
+      viewSelect.appendChild(defaultOption2);
 
       user.sections.forEach(section => {
         const option1 = document.createElement('option');
@@ -491,37 +570,77 @@
       const list = document.getElementById('friendList');
       list.innerHTML = "";
 
-      user.friends
-        .filter(f => selectedView === "all" || f.section === selectedView)
-        .forEach(f => {
-          const li = document.createElement("li");
-          li.textContent = `${f.name} - ID: ${f.id} ${selectedView === "all" ? `( ${f.section} )` : ""}`;
-          
-          const deleteBtn = document.createElement("button");
-          deleteBtn.innerHTML = "<span style='font-size:16px'>🗑️</span>";
-          deleteBtn.style.marginRight = "10px";
-          deleteBtn.style.borderRadius = "50%";
-          deleteBtn.style.width = "35px";
-          deleteBtn.style.height = "35px";
-          deleteBtn.style.padding = "5px";
-          deleteBtn.onclick = () => deleteFriend(f.id);
-          li.insertBefore(deleteBtn, li.firstChild);
-          
-          const copyBtn = document.createElement("button");
-          copyBtn.innerHTML = "<span style='font-size:16px'>📋</span>";
-          copyBtn.style.marginRight = "10px";
-          copyBtn.style.borderRadius = "50%";
-          copyBtn.style.width = "35px";
-          copyBtn.style.height = "35px";
-          copyBtn.style.padding = "5px";
-          copyBtn.onclick = () => {
-            navigator.clipboard.writeText(f.id);
-            alert("تم نسخ ID بنجاح!");
-          };
-          li.insertBefore(copyBtn, li.firstChild);
-          
-          list.appendChild(li);
-        });
+      const filteredFriends = user.friends
+        .filter(f => selectedView === "all" || f.section === selectedView);
+
+      filteredFriends.forEach(f => {
+        const li = document.createElement("li");
+        li.setAttribute('draggable', 'true');
+        li.dataset.friendId = f.id;
+        li.textContent = `${f.name} - ID: ${f.id} ${selectedView === "all" ? `( ${f.section || 'بدون قسم'} )` : ""}`;
+        
+        const deleteBtn = document.createElement("button");
+        deleteBtn.innerHTML = "<span style='font-size:16px'>🗑️</span>";
+        deleteBtn.style.marginRight = "10px";
+        deleteBtn.style.borderRadius = "50%";
+        deleteBtn.style.width = "35px";
+        deleteBtn.style.height = "35px";
+        deleteBtn.style.padding = "5px";
+        deleteBtn.onclick = () => deleteFriend(f.id);
+        li.insertBefore(deleteBtn, li.firstChild);
+        
+        const copyBtn = document.createElement("button");
+        copyBtn.innerHTML = "<span style='font-size:16px'>📋</span>";
+        copyBtn.style.marginRight = "10px";
+        copyBtn.style.borderRadius = "50%";
+        copyBtn.style.width = "35px";
+        copyBtn.style.height = "35px";
+        copyBtn.style.padding = "5px";
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(f.id);
+          alert("تم نسخ ID بنجاح!");
+        };
+        li.insertBefore(copyBtn, li.firstChild);
+        
+        li.addEventListener('dragstart', handleDragStart);
+        li.addEventListener('dragover', handleDragOver);
+        li.addEventListener('drop', handleDrop);
+        
+        list.appendChild(li);
+      });
+    }
+
+    function handleDragStart(e) {
+      e.dataTransfer.setData('text/plain', e.target.dataset.friendId);
+      e.target.style.opacity = '0.5';
+    }
+
+    function handleDragOver(e) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+    }
+
+    async function handleDrop(e) {
+      e.preventDefault();
+      const draggedId = e.dataTransfer.getData('text/plain');
+      const dropTarget = e.target.closest('li');
+      
+      if (dropTarget && dropTarget.dataset.friendId !== draggedId) {
+        const users = await getUsers();
+        const user = users[currentUser];
+        const friends = user.friends;
+        
+        const draggedIndex = friends.findIndex(f => f.id === draggedId);
+        const dropIndex = friends.findIndex(f => f.id === dropTarget.dataset.friendId);
+        
+        const [draggedFriend] = friends.splice(draggedIndex, 1);
+        friends.splice(dropIndex, 0, draggedFriend);
+        
+        await saveUsers(users);
+        await renderFriendsView();
+      }
+      
+      document.querySelectorAll('#friendList li').forEach(li => li.style.opacity = '1');
     }
     
     async function deleteFriend(friendId) {
