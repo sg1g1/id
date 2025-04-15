@@ -3,12 +3,13 @@
  */
 
 class GitHubStorage {
-  constructor(options) {
-    this.owner = options.owner; // اسم المستخدم أو المنظمة على GitHub
-    this.repo = options.repo; // اسم المستودع
-    this.path = options.path || 'users_data.json'; // مسار الملف في المستودع
-    this.branch = options.branch || 'main'; // الفرع المستخدم
-    this.token = options.token; // رمز الوصول الشخصي لـ GitHub
+  constructor(token) {
+    // إعدادات افتراضية ثابتة
+    this.owner = 'genshin-users'; // اسم المستخدم أو المنظمة على GitHub
+    this.repo = 'data-storage'; // اسم المستودع
+    this.path = 'users_data.json'; // مسار الملف في المستودع
+    this.branch = 'main'; // الفرع المستخدم
+    this.token = token; // رمز الوصول الشخصي لـ GitHub
   }
 
   /**
