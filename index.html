@@ -195,6 +195,7 @@
     function initGithubStorage() {
       const token = document.getElementById('githubToken').value;
       githubStorage = new GitHubStorage(token);
+    }
     
     // تهيئة التخزين عند تحميل الصفحة
     window.onload = function() {
@@ -438,20 +439,11 @@
     }
   </script>
 
-</body>
-</html>
-    // تهيئة التخزين في GitHub
-    function initGithubStorage() {
-      const token = document.getElementById('githubToken').value;
-      githubStorage = new GitHubStorage(token);
-    }
-    
-    // تهيئة التخزين عند تحميل الصفحة
-    window.onload = function() {
-      initGithubStorage();
-    }
-
+  <script>
     // تنفيذ التهيئة عند تحميل الصفحة
     window.addEventListener('DOMContentLoaded', () => {
       initGithubStorage();
-    }); // Close DOMContentLoaded event listener
+    });
+  </script>
+</body>
+</html>
