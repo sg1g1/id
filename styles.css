@@ -1,0 +1,246 @@
+:root {
+  --bg-gradient: linear-gradient(135deg, #07e8a1 0%, #05c78a 50%, #027a5a 100%);
+  --text-color: #333;
+  --primary-color: #05c78a;
+  --secondary-color: #027a5a;
+  --form-bg: rgba(255, 255, 255, 0.9);
+  --form-border: rgba(255, 255, 255, 0.3);
+  --input-bg: rgba(255, 255, 255, 0.9);
+  --list-bg: rgba(240, 248, 255, 0.9);
+  --popup-bg: rgba(255, 255, 255, 0.95);
+  --popup-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+body {
+    background: var(--bg-gradient);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    min-height: 100vh;
+    background-attachment: fixed;
+    transition: all 0.5s ease, background 0.8s ease, color 0.8s ease;
+}
+
+body.dark-mode {
+  --bg-gradient: linear-gradient(135deg, #025a3e 0%, #013d2b 50%, #012419 100%);
+  --text-color: #f0f0f0;
+  --primary-color: #07e8a1;
+  --secondary-color: #05c78a;
+  --form-bg: rgba(30, 30, 30, 0.9);
+  --form-border: rgba(60, 60, 60, 0.3);
+  --input-bg: rgba(40, 40, 40, 0.9);
+  --list-bg: rgba(20, 30, 40, 0.9);
+  --popup-bg: rgba(30, 30, 30, 0.95);
+  --popup-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  transition: all 0.5s ease, background 0.8s ease, color 0.8s ease;
+}
+
+h1 {
+    color: white;
+    text-align: center;
+    margin: 20px auto;
+    font-size: 3rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+form {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    max-width: 500px;
+    margin: 20px auto;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+form:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    color: #05c78a;
+}
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #00bfff;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+    background: rgba(255, 255, 255, 0.9);
+}
+
+input:focus, select:focus {
+    outline: none;
+    border-color: #07e8a1;
+    box-shadow: 0 0 0 3px rgba(7, 232, 161, 0.2);
+}
+
+button {
+    background-color: #07e8a1;
+    color: white;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+    margin: 0 10px 15px 0;
+}
+
+button img {
+    transform: scale(1.6);
+    transition: transform 0.3s ease;
+}
+
+button:hover {
+    background-color: #05c78a;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.custom-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.popup-content {
+    background: var(--popup-bg);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: var(--popup-shadow);
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 3px solid red;
+    animation: slide-up 0.5s ease-out;
+}
+
+@keyframes slide-up {
+    0% {
+        transform: translateX(-50%) translateY(100%);
+    }
+    100% {
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+.popup-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.popup-buttons button {
+    width: 100%;
+    margin: 5px 0;
+}
+
+button::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+button:focus:not(:active)::after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(20, 20);
+        opacity: 0;
+    }
+}
+
+#friends-list {
+    background: rgba(255, 255, 255, 0.9);
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    max-width: 800px;
+    margin: 20px auto;
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+#friends-list:hover {
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    transform: translateY(-2px);
+}
+
+#friends-list h2 {
+    color: #05c78a;
+    text-align: center;
+}
+
+#friends {
+    list-style-type: none;
+    padding: 0;
+}
+
+#friends li {
+  display: flex;
+  align-items: center;
+}
+
+#friends li button img {
+  width: 16px;
+  height: 16px;
+  background: linear-gradient(135deg, white 0%, red 100%);
+  border-radius: 3px;
+  padding: 2px;
+}
+#friends li {
+    background: rgba(240, 248, 255, 0.9);
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: black;
+}
+
+#friends li:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}

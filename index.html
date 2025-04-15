@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>صفحة رئيسية</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <button class="dark-mode-toggle" onclick="toggleDarkMode()">
+        <span class="light-icon">🌙</span>
+        <span class="dark-icon" style="display:none">☀️</span>
+    </button>
+    <h1>GameBank</h1>
+    <form>
+        <label for="friend-name">اسم الصديق:</label>
+        <input type="text" id="friend-name" name="friend-name"><br>
+        
+        <label for="friend-id">ID:</label>
+        <input type="text" id="friend-id" name="friend-id"><br>
+        
+        <label for="game-type">نوع اللعبة:</label>
+        <select id="game-type" name="game-type">
+            <option value="genshin-impact">Genshin Impact</option>
+            <option value="honkai-star-rail">Honkai: Star Rail</option>
+            <option value="zenless-zone-zero">Zenless Zone Zero (ZZZ)</option>
+            <option value="wuthering-waves">Wuthering Waves</option>
+            <option value="punishing-gray-raven">Punishing: Gray Raven</option>
+            <option value="snowbreak">Snowbreak: Containment Zone</option>
+            <option value="honkai-impact-3rd">Honkai Impact 3rd</option>
+            <option value="tower-of-fantasy">Tower of Fantasy</option>
+            <option value="stella-fantasy">Stella Fantasy</option>
+            <option value="sky-children">Sky: Children of the Light</option>
+            <option value="sao-integral-factor">Sword Art Online: Integral Factor</option>
+            <option value="pubg-mobile">PUBG Mobile</option>
+            <option value="cod-mobile">Call of Duty: Mobile</option>
+            <option value="clash-of-clans">Clash of Clans</option>
+            <option value="brawl-stars">Brawl Stars</option>
+            <option value="roblox">Roblox</option>
+            <option value="free-fire">Free Fire</option>
+            <option value="afk-arena">AFK Arena</option>
+            <option value="gacha-club">Gacha Club</option>
+            <option value="custom">نوع مخصص (أرقام الهاتف)</option>
+        </select><br>
+        <button type="button" onclick="addFriend()">إضافة صديق</button>
+        <button type="button" onclick="addNewGameType()">إضافة نوع جديد</button>
+        <button type="button" onclick="exportFile()">تصدير ملف</button>
+        <button type="button" onclick="saveFriendsToJSON()">حفظ كملف JSON</button>
+        <button type="button" onclick="resetSettings()">استعادة الإعدادات الافتراضية</button>
+    </form>
+    <script>
+        function addNewGameType() {
+            const gameTypeName = prompt('الرجاء إدخال اسم النوع الجديد:');
+            if (gameTypeName) {
+                const gameTypeValue = gameTypeName.toLowerCase().replace(/ /g, '-');
+                const select = document.getElementById('game-type');
+                const newOption = document.createElement('option');
+                newOption.value = gameTypeValue;
+                newOption.textContent = gameTypeName;
+                select.appendChild(newOption);
+            }
+        }
+    </script>
+    
+    <div id="friends-list">
+        <h2>قائمة الأصدقاء</h2>
+        <select id="game-filter" onchange="filterFriendsByGame()">
+            <option value="all">عرض الكل</option>
+        </select>
+        <ul id="friends"></ul>
+    </div>
+    
+    <script>
+        function copyId(id) {
+  navigator.clipboard.writeText(id);
+  alert('تم نسخ ID: ' + id);
+}
+
+let lastDeletedFriend = null;
+
+function deleteFriend(button) {
+  const li = button.parentElement;
+  const text = li.querySelector('span').textContent;
+  const [name, id, game] = text.split(',').map(s => s.split(':')[1].trim());
+  
+  lastDeletedFriend = {name, id, game};
+  localStorage.setItem('lastDeletedFriend', JSON.stringify(lastDeletedFriend));
+  
+  li.remove();
+  saveFriendsToLocalStorage();
+  
+  // إظهار زر التراجع
+  const undoButton = document.createElement('button');
+  undoButton.textContent = 'تراجع عن الحذف';
+  undoButton.style.margin = '10px';
+  undoButton.style.padding = '5px 10px';
+  undoButton.style.fontSize = '12px';
+  undoButton.onclick = undoDelete;
+  
+  const existingUndo = document.querySelector('#undo-container');
+  if (existingUndo) {
+    existingUndo.remove();
+  }
+  
+  const undoContainer = document.createElement('div');
+  undoContainer.id = 'undo-container';
+  undoContainer.appendChild(undoButton);
+  document.getElementById('friends-list').appendChild(undoContainer);
+}
+
+function editFriend(button) {
+  const li = button.parentElement;
+  const content = li.querySelector('span').textContent;
+  const [name, id, game] = content.split(',').map(s => s.split(':')[1].trim());
+  
+  document.getElementById('friend-name').value = name;
+  document.getElementById('friend-id').value = id;
+  document.getElementById('game-type').value = game.toLowerCase().replace(/ /g, '-');
+  
+  li.remove();
+  saveFriendsToLocalStorage();
+}
+
+function addFriend() {
+            let name = document.getElementById('friend-name').value;
+            const id = document.getElementById('friend-id').value;
+            const gameType = document.getElementById('game-type').value;
+            
+            if (name.endsWith('@gmail.com') || id.endsWith('@gmail.com')) {
+                alert('هذا الموقع غير مخصص لتخزين الحسابات و كلمات المرور لذلك نحن غير مسؤولون عن تسريب بياناتك');
+                return;
+            }
+            
+            if (name === "كرار") {
+                name = "كرار🫏";
+            }
+            
+            if (name && id && gameType) {
+                const friendItem = document.createElement('li');
+                friendItem.innerHTML = `
+  <span>الاسم: ${name}, ID: ${id}, اللعبة: ${gameType}</span>
+  <button onclick="copyId('${id}')">
+    <img src="icons/coppy.png" alt="نسخ ID">
+  </button>
+  <button onclick="editFriend(this)">
+    <img src="icons/edit.png" alt="تعديل">
+  </button>
+  <button onclick="deleteFriend(this)">
+    <img src="icons/delete.png" alt="حذف">
+  </button>
+`;
+                document.getElementById('friends').appendChild(friendItem);
+                
+                // مسح الحقول بعد الإضافة
+                document.getElementById('friend-name').value = '';
+                document.getElementById('friend-id').value = '';
+                document.getElementById('game-type').selectedIndex = 0;
+                
+                // حفظ البيانات في localStorage
+                saveFriendsToLocalStorage();
+            } else {
+                alert('الرجاء ملء جميع الحقول');
+            }
+        }
+        
+        function populateGameFilter() {
+            const filterSelect = document.getElementById('game-filter');
+            const games = new Set();
+            
+            // إضافة الألعاب من القائمة الحالية
+            document.querySelectorAll('#friends li').forEach(li => {
+                const game = li.querySelector('span').textContent.split(',')[2].split(':')[1].trim();
+                games.add(game);
+            });
+            
+            // إضافة الألعاب من localStorage
+            const savedFriends = localStorage.getItem('friends');
+            if (savedFriends) {
+                JSON.parse(savedFriends).forEach(friend => {
+                    games.add(friend.game);
+                });
+            }
+            
+            // إضافة خيارات التصفية
+            games.forEach(game => {
+                const option = document.createElement('option');
+                option.value = game;
+                option.textContent = game;
+                filterSelect.appendChild(option);
+            });
+        }
+        
+        function filterFriendsByGame() {
+            const selectedGame = document.getElementById('game-filter').value;
+            localStorage.setItem('gameFilter', selectedGame);
+            
+            document.querySelectorAll('#friends li').forEach(li => {
+                const game = li.querySelector('span').textContent.split(',')[2].split(':')[1].trim();
+                if (selectedGame === 'all' || game === selectedGame) {
+                    li.style.display = '';
+                } else {
+                    li.style.display = 'none';
+                }
+            });
+        }
+        
+        function saveFriendsToLocalStorage() {
+            const friends = [];
+            document.querySelectorAll('#friends li').forEach(li => {
+                const text = li.querySelector('span').textContent;
+                const [name, id, game] = text.split(',').map(s => s.split(':')[1].trim());
+                friends.push({name, id, game});
+            });
+            localStorage.setItem('friends', JSON.stringify(friends));
+        }
+        
+        function loadFriendsFromLocalStorage() {
+            const savedFriends = localStorage.getItem('friends');
+            if (savedFriends) {
+                const friends = JSON.parse(savedFriends);
+                friends.forEach(friend => {
+                    const friendItem = document.createElement('li');
+                    friendItem.innerHTML = `
+  <span>الاسم: ${friend.name}, ID: ${friend.id}, اللعبة: ${friend.game}</span>
+  <button onclick="copyId('${friend.id}')">
+    <img src="icons/coppy.png" alt="نسخ ID">
+  </button>
+  <button onclick="editFriend(this)">
+    <img src="icons/edit.png" alt="تعديل">
+  </button>
+  <button onclick="deleteFriend(this)">
+    <img src="icons/delete.png" alt="حذف">
+  </button>
+`;
+                    document.getElementById('friends').appendChild(friendItem);
+                });
+            }
+            
+            // تحميل آخر صديق محذوف إذا وجد
+            const lastDeleted = localStorage.getItem('lastDeletedFriend');
+            if (lastDeleted) {
+                lastDeletedFriend = JSON.parse(lastDeleted);
+            }
+        }
+        
+        function undoDelete() {
+            if (lastDeletedFriend) {
+                const friendItem = document.createElement('li');
+                friendItem.innerHTML = `
+  <span>الاسم: ${lastDeletedFriend.name}, ID: ${lastDeletedFriend.id}, اللعبة: ${lastDeletedFriend.game}</span>
+  <button onclick="copyId('${lastDeletedFriend.id}')">
+    <img src="icons/coppy.png" alt="نسخ ID">
+  </button>
+  <button onclick="editFriend(this)">
+    <img src="icons/edit.png" alt="تعديل">
+  </button>
+  <button onclick="deleteFriend(this)">
+    <img src="icons/delete.png" alt="حذف">
+  </button>
+`;
+                document.getElementById('friends').appendChild(friendItem);
+                
+                saveFriendsToLocalStorage();
+                document.querySelector('#undo-container').remove();
+                localStorage.removeItem('lastDeletedFriend');
+                lastDeletedFriend = null;
+            }
+        }
+        
+        // تحميل الأصدقاء عند بدء الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFriendsFromLocalStorage();
+            populateGameFilter();
+            
+            // تطبيق التصفية المحفوظة إذا وجدت
+            const savedFilter = localStorage.getItem('gameFilter');
+            if (savedFilter) {
+                document.getElementById('game-filter').value = savedFilter;
+                filterFriendsByGame();
+            }
+        });
+        // وظيفة تبديل الوضع الداكن
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+        }
+
+        // تحميل الوضع المحفوظ
+        
+        // وظيفة حفظ الأصدقاء كملف JSON
+        function saveFriendsToJSON() {
+            const friendsList = [];
+            const friendItems = document.querySelectorAll('#friends li');
+            
+            friendItems.forEach(item => {
+                const text = item.querySelector('span').textContent;
+                const [namePart, idPart, gamePart] = text.split(',');
+                friendsList.push({
+                    "name": namePart.replace('الاسم: ', '').trim(),
+                    "id": idPart.replace('ID: ', '').trim(),
+                    "game": gamePart.replace('اللعبة: ', '').trim()
+                });
+            });
+            
+            const jsonData = JSON.stringify(friendsList, null, 2);
+            const blob = new Blob([jsonData], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'friends.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+        
+        function exportFile() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = e => {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = event => {
+                    try {
+                        const jsonData = JSON.parse(event.target.result);
+                        jsonData.forEach(friend => {
+                            document.getElementById('friend-name').value = friend.name;
+                            document.getElementById('friend-id').value = friend.id;
+                            document.getElementById('game-type').value = friend.game.toLowerCase().replace(/ /g, '-');
+                            addFriend();
+                        });
+                    } catch (error) {
+                        alert('خطأ في قراءة الملف: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+        if (localStorage.getItem('darkMode') === 'true') {
+            document.body.classList.add('dark-mode');
+        }
+        
+        function resetSettings() {
+            // إنشاء عناصر النافذة المنبثقة
+            const popup = document.createElement('div');
+            popup.className = 'custom-popup';
+            popup.innerHTML = `
+                <div class="popup-content">
+                    <h3>سيتم حذف جميع بيانات الموقع</h3>
+                    <p>هل تريد عمل نسخة احتياطية؟</p>
+                    <div class="popup-buttons">
+                        <button onclick="handleResetChoice(true)">موافق (نسخة احتياطية)</button>
+                        <button onclick="handleResetChoice(false)">إلغاء (حذف بدون نسخة)</button>
+                        <button onclick="closePopup()">إغلاق</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(popup);
+        }
+        
+        function handleResetChoice(backup) {
+            if (backup) {
+                saveFriendsToJSON();
+            }
+            clearData();
+            closePopup();
+        }
+        
+        function closePopup() {
+            const popup = document.querySelector('.custom-popup');
+            if (popup) {
+                popup.remove();
+            }
+        }
+        
+        function clearData() {
+            // حذف جميع الأصدقاء
+            document.getElementById('friends').innerHTML = '';
+            
+            // إعادة تعيين قائمة الألعاب إلى الإعدادات الافتراضية
+            const select = document.getElementById('game-type');
+            const defaultOptions = [
+                {value: "genshin-impact", text: "Genshin Impact"},
+                {value: "honkai-star-rail", text: "Honkai: Star Rail"},
+                {value: "zenless-zone-zero", text: "Zenless Zone Zero (ZZZ)"},
+                {value: "wuthering-waves", text: "Wuthering Waves"},
+                {value: "punishing-gray-raven", text: "Punishing: Gray Raven"},
+                {value: "snowbreak", text: "Snowbreak: Containment Zone"},
+                {value: "honkai-impact-3rd", text: "Honkai Impact 3rd"},
+                {value: "tower-of-fantasy", text: "Tower of Fantasy"},
+                {value: "stella-fantasy", text: "Stella Fantasy"},
+                {value: "sky-children", text: "Sky: Children of the Light"},
+                {value: "sao-integral-factor", text: "Sword Art Online: Integral Factor"},
+                {value: "pubg-mobile", text: "PUBG Mobile"},
+                {value: "cod-mobile", text: "Call of Duty: Mobile"},
+                {value: "clash-of-clans", text: "Clash of Clans"},
+                {value: "brawl-stars", text: "Brawl Stars"},
+                {value: "roblox", text: "Roblox"},
+                {value: "free-fire", text: "Free Fire"},
+                {value: "afk-arena", text: "AFK Arena"},
+                {value: "gacha-club", text: "Gacha Club"},
+                {value: "custom", text: "نوع مخصص (أرقام الهاتف)"}
+            ];
+            
+            select.innerHTML = '';
+            defaultOptions.forEach(option => {
+                const newOption = document.createElement('option');
+                newOption.value = option.value;
+                newOption.textContent = option.text;
+                select.appendChild(newOption);
+            });
+        }
+    </script>
+    
+    <button id="contact-button" style="position: fixed; bottom: 20px; left: 20px; background: var(--primary-color); color: white; border: none; padding: 12px 24px; border-radius: 12px; cursor: pointer; transition: all 0.3s ease; font-weight: bold; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+        للتواصل مع بتيتة
+    </button>
+    
+    <script>
+        document.getElementById('contact-button').addEventListener('click', function() {
+            window.location.href = 'https://sg1g1.github.io/potato/';
+        });
+    </script>
+</body>
+</html>
