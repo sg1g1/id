@@ -141,11 +141,12 @@
 </head>
 <body>
 
-  <h2>تسجيل أو دخول</h2>
+  <h2 id="loginTitle">تسجيل أو دخول</h2>
 
   <div id="auth">
     <input type="text" id="username" placeholder="اسمك"><br>
     <input type="password" id="passcode" placeholder="رمز الدخول"><br>
+    <div id="loginError" style="color: #d32f2f; margin: 8px 0; display: none;"></div>
     <button onclick="register()">تسجيل جديد</button>
     <button onclick="login()">دخول</button>
   </div>
@@ -198,8 +199,21 @@
     }
     
     // تهيئة التخزين عند تحميل الصفحة
-    window.onload = function() {
+    window.onload = async function() {
       initGithubStorage();
+      // التحقق من وجود مستخدم مسجل الدخول
+      const savedUser = localStorage.getItem('currentUser');
+      if (savedUser) {
+        const users = await getUsers();
+        if (users && users[savedUser]) {
+          currentUser = savedUser;
+          document.getElementById("auth").style.display = "none";
+          document.getElementById("dashboard").style.display = "block";
+          document.getElementById("playerName").textContent = users[savedUser].username;
+          await updateSections();
+          await renderFriendsView();
+        }
+      }
     }
 
     // تنفيذ التهيئة عند تحميل الصفحة
@@ -285,8 +299,11 @@
 
     async function login() {
       const passcode = document.getElementById('passcode').value.trim();
+      const loginError = document.getElementById('loginError');
+      
       if (!passcode) {
-        alert("يرجى إدخال رمز الدخول");
+        loginError.textContent = "يرجى إدخال رمز الدخول";
+        loginError.style.display = "block";
         return;
       }
 
@@ -296,34 +313,40 @@
         
         // محاولة جلب البيانات
         const users = await getUsers();
-        console.log('تم جلب البيانات:', users); // للتشخيص
 
         if (users && users[passcode]) {
           currentUser = passcode;
+          // حفظ حالة تسجيل الدخول
+          localStorage.setItem('currentUser', passcode);
+          
           document.getElementById("auth").style.display = "none";
           document.getElementById("dashboard").style.display = "block";
           document.getElementById("playerName").textContent = users[passcode].username;
+          document.getElementById("loginTitle").style.display = "none";
+          loginError.style.display = "none";
           await updateSections();
           await renderFriendsView();
-          console.log('تم تسجيل الدخول بنجاح'); // للتشخيص
         } else {
-          console.log('بيانات المستخدمين:', users); // للتشخيص
-          console.log('رمز الدخول المدخل:', passcode); // للتشخيص
-          alert("رمز الدخول غير صحيح أو لم يتم العثور على البيانات");
+          loginError.textContent = "رمز الدخول غير صحيح أو لم يتم العثور على البيانات";
+          loginError.style.display = "block";
           document.getElementById("passcode").value = "";
         }
       } catch (error) {
         console.error('خطأ في تسجيل الدخول:', error);
-        alert("حدث خطأ أثناء تسجيل الدخول. يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.");
+        loginError.textContent = "حدث خطأ أثناء تسجيل الدخول. يرجى التأكد من اتصال الإنترنت والمحاولة مرة أخرى.";
+        loginError.style.display = "block";
       }
     }
 
     function logout() {
       currentUser = null;
+      localStorage.removeItem('currentUser');
       document.getElementById("auth").style.display = "block";
       document.getElementById("dashboard").style.display = "none";
+      document.getElementById("loginTitle").style.display = "block";
       document.getElementById("username").value = "";
       document.getElementById("passcode").value = "";
+      document.getElementById("loginError").style.display = "none";
     }
 
     async function addSection() {
