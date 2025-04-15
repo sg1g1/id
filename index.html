@@ -479,29 +479,30 @@
 
       const users = await getUsers();
       const user = users[currentUser];
+      if (!user) return alert("حدث خطأ في النظام.");
       if (!user.sections) user.sections = [];
-      if (!user.sections.includes(sectionName)) {
-        user.sections.push(sectionName);
-        await saveUsers(users);
-        await updateSections();
-        document.getElementById('sectionName').value = "";
-      } else {
+      if (!user.friends) user.friends = [];
+      if (!user.friends) user.friends = []; // تكرار للتأكد من التهيئة
+      
+      if (user.sections.includes(sectionName)) {
         alert("القسم موجود بالفعل.");
+        return;
       }
+      
+      user.sections.push(sectionName);
+      await saveUsers(users);
+      await updateSections();
+      document.getElementById('sectionName').value = "";
     }
 
     async function addFriend() {
-      const friendName = document.getElementById('friendName').value.trim();
-      const friendID = document.getElementById('friendID').value.trim();
-      const section = document.getElementById('sectionSelect').value;
-
-      if (!friendName || !friendID) {
-        alert("يرجى إدخال اسم الصديق و ID الصديق.");
-        return;
-      }
+      const friendName = document.getElementById('friendName').value.trim() || '┄';
+      const friendID = document.getElementById('friendID').value.trim() || '┄';
+      const section = document.getElementById('sectionSelect').value || 'بدون قسم';
 
       const users = await getUsers();
       const user = users[currentUser];
+      if (!user.friends) user.friends = [];
       user.friends.push({ name: friendName, id: friendID, section });
       await saveUsers(users);
       await renderFriendsView();
@@ -544,17 +545,13 @@
     }
 
     async function addFriend() {
-      const friendName = document.getElementById('friendName').value.trim();
-      const friendID = document.getElementById('friendID').value.trim();
-      const section = document.getElementById('sectionSelect').value;
-
-      if (!friendName || !friendID || !section) {
-        alert("يرجى ملء جميع الحقول.");
-        return;
-      }
+      const friendName = document.getElementById('friendName').value.trim() || 'بدون اسم';
+      const friendID = document.getElementById('friendID').value.trim() || 'بدون ID';
+      const section = document.getElementById('sectionSelect').value || 'بدون قسم';
 
       const users = await getUsers();
       const user = users[currentUser];
+      if (!user.friends) user.friends = [];
       user.friends.push({ name: friendName, id: friendID, section });
       await saveUsers(users);
       await renderFriendsView();
