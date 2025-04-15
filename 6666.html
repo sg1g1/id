@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <title>حسابات الألعاب</title>
+  <style>
+    body { 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      text-align: center; 
+      padding: 30px; 
+      direction: rtl; 
+      background-color: #e0f7fa; 
+      color: #006064;
+    }
+    
+    h2, h3, h4 {
+      color: #00838f;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    input, select { 
+      margin: 8px; 
+      padding: 12px; 
+      width: 220px; 
+      border: none; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 5px rgba(0,131,143,0.2); 
+      background-color: #ffffff; 
+      transition: all 0.3s ease;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      box-shadow: 0 4px 8px rgba(0,131,143,0.3);
+      transform: translateY(-2px);
+    }
+    
+    button { 
+      padding: 12px 24px; 
+      margin-top: 12px; 
+      border: none; 
+      border-radius: 8px; 
+      background: linear-gradient(135deg, #00bcd4, #0097a7); 
+      color: white; 
+      font-weight: bold; 
+      cursor: pointer; 
+      transition: all 0.3s ease; 
+      box-shadow: 0 3px 6px rgba(0,131,143,0.3);
+    }
+    
+    button:hover {
+      background: linear-gradient(135deg, #0097a7, #00838f);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 10px rgba(0,131,143,0.4);
+    }
+    
+    #dashboard { 
+      display: none; 
+      background-image: url('img2.png'); 
+      background-size: cover; 
+      background-position: center; 
+      border-radius: 15px;
+      box-shadow: 0 8px 16px rgba(0,131,143,0.2);
+      padding: 20px;
+      margin-top: 20px;
+    }
+    
+    #addSectionDiv { 
+      margin: 25px 0; 
+      background: rgba(178, 235, 242, 0.7); 
+      padding: 20px; 
+      border-radius: 12px; 
+      box-shadow: 0 4px 8px rgba(0,131,143,0.2);
+    }
+    
+    #auth { 
+      background: linear-gradient(45deg, #006064, #00bcd4, #006064); 
+      background-size: 200% 200%;
+      animation: gradientBG 10s ease infinite;
+      padding: 50px; 
+      border-radius: 15px;
+      box-shadow: 0 10px 20px rgba(0,131,143,0.3);
+    }
+    
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    #addFriendSection { 
+      background-image: linear-gradient(rgba(0,151,167,0.7), rgba(0,131,143,0.7)), url('img3.png'); 
+      background-size: cover; 
+      background-position: center; 
+      padding: 25px; 
+      margin: 25px 0; 
+      border-radius: 12px; 
+      box-shadow: 0 6px 12px rgba(0,131,143,0.3);
+      color: white;
+    }
+    
+    #viewMode { 
+      background-image: linear-gradient(rgba(0,188,212,0.7), rgba(0,151,167,0.7)), url('img4.png'); 
+      background-size: cover; 
+      background-position: center; 
+      padding: 25px; 
+      margin: 25px 0; 
+      border-radius: 12px; 
+      box-shadow: 0 6px 12px rgba(0,131,143,0.3);
+      color: white;
+    }
+    
+    #friendList { 
+      background-image: linear-gradient(rgba(224,247,250,0.8), rgba(178,235,242,0.8)), url('wallpaper.png'); 
+      background-size: cover; 
+      background-position: center; 
+      padding: 25px; 
+      border-radius: 12px; 
+      min-height: 100vh; 
+      width: 100%; 
+      margin: 0; 
+      box-shadow: 0 8px 16px rgba(0,131,143,0.2);
+    }
+    
+    #friendList li {
+      background: rgba(255,255,255,0.8);
+      margin: 10px 0;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 5px rgba(0,131,143,0.2);
+      transition: all 0.3s ease;
+      list-style-type: none;
+    }
+    
+    #friendList li:hover {
+      background: rgba(255,255,255,0.95);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,131,143,0.3);
+    }
+  </style>
+</head>
+<body>
+
+  <h2>تسجيل أو دخول</h2>
+
+  <div id="auth">
+    <input type="text" id="username" placeholder="اسمك"><br>
+    <input type="password" id="passcode" placeholder="رمز الدخول"><br>
+    <button onclick="register()">تسجيل جديد</button>
+    <button onclick="login()">دخول</button>
+  </div>
+
+  <div id="dashboard">
+    <h3>أهلاً، <span id="playerName"></span>!</h3>
+    <button onclick="logout()">تسجيل الخروج</button>
+
+    <div id="addFriendSection">
+      <h4>إضافة ID لصديق:</h4>
+      <input type="text" id="friendName" placeholder="اسم الصديق">
+      <input type="text" id="friendID" placeholder="ID الصديق">
+      <select id="sectionSelect"></select>
+      <button onclick="addFriend()">إضافة</button>
+    </div>
+
+    <div id="addSectionDiv">
+      <h4>إضافة قسم جديد:</h4>
+      <input type="text" id="sectionName" placeholder="اسم القسم">
+      <button onclick="addSection()">إضافة قسم</button>
+    </div>
+
+    <div id="viewMode">
+      <h4>عرض حسب القسم:</h4>
+      <select id="viewSelect" onchange="renderFriendsView()">
+        <option value="all">الكل</option>
+      </select>
+      <button onclick="showSectionsList()" style="margin-top: 10px;">حذف أحد الأقسام</button>
+    </div>
+
+    <h4>الحسابات المحفوظة:</h4>
+    <ul id="friendList"></ul>
+  </div>
+
+  <script>
+    let currentUser = null;
+
+    function getUsers() {
+      return JSON.parse(localStorage.getItem("genshinUsers") || "{}");
+    }
+
+    function saveUsers(users) {
+      localStorage.setItem("genshinUsers", JSON.stringify(users));
+    }
+
+    function register() {
+      const username = document.getElementById('username').value.trim();
+      const passcode = document.getElementById('passcode').value.trim();
+
+      if (!username || !passcode) {
+        alert("يرجى ملء جميع الحقول.");
+        return;
+      }
+
+      const users = getUsers();
+      if (users[passcode]) {
+        alert("الرمز مستخدم مسبقًا. جرب رمزًا آخر.");
+        return;
+      }
+
+      users[passcode] = { username, sections: [], friends: [] };
+      saveUsers(users);
+      alert("تم التسجيل بنجاح!");
+    }
+
+    function login() {
+      const passcode = document.getElementById('passcode').value.trim();
+      const users = getUsers();
+
+      if (users[passcode]) {
+        currentUser = passcode;
+        document.getElementById("auth").style.display = "none";
+        document.getElementById("dashboard").style.display = "block";
+        document.getElementById("playerName").textContent = users[passcode].username;
+        updateSections();
+        renderFriendsView();
+      } else {
+        alert("رمز دخول غير صحيح.");
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      document.getElementById("auth").style.display = "block";
+      document.getElementById("dashboard").style.display = "none";
+      document.getElementById("username").value = "";
+      document.getElementById("passcode").value = "";
+    }
+
+    function addSection() {
+      const sectionName = document.getElementById('sectionName').value.trim();
+      if (!sectionName) return alert("يرجى إدخال اسم القسم.");
+
+      const users = getUsers();
+      const user = users[currentUser];
+      if (!user.sections.includes(sectionName)) {
+        user.sections.push(sectionName);
+        saveUsers(users);
+        updateSections();
+        document.getElementById('sectionName').value = "";
+      } else {
+        alert("القسم موجود بالفعل.");
+      }
+    }
+
+    function updateSections() {
+      const users = getUsers();
+      const user = users[currentUser];
+      const sectionSelect = document.getElementById('sectionSelect');
+      const viewSelect = document.getElementById('viewSelect');
+
+      sectionSelect.innerHTML = "";
+      viewSelect.innerHTML = `<option value="all">الكل</option>`;
+
+      user.sections.forEach(section => {
+        const option1 = document.createElement('option');
+        option1.value = section;
+        option1.textContent = section;
+        sectionSelect.appendChild(option1);
+
+        const option2 = document.createElement('option');
+        option2.value = section;
+        option2.textContent = section;
+        viewSelect.appendChild(option2);
+      });
+    }
+
+    function addFriend() {
+      const friendName = document.getElementById('friendName').value.trim();
+      const friendID = document.getElementById('friendID').value.trim();
+      const section = document.getElementById('sectionSelect').value;
+
+      if (!friendName || !friendID || !section) {
+        alert("يرجى ملء جميع الحقول.");
+        return;
+      }
+
+      const users = getUsers();
+      const user = users[currentUser];
+      user.friends.push({ name: friendName, id: friendID, section });
+      saveUsers(users);
+      renderFriendsView();
+
+      document.getElementById('friendName').value = "";
+      document.getElementById('friendID').value = "";
+    }
+
+    function renderFriendsView() {
+      const users = getUsers();
+      const user = users[currentUser];
+      const selectedView = document.getElementById('viewSelect').value;
+      const list = document.getElementById('friendList');
+      list.innerHTML = "";
+
+      user.friends
+        .filter(f => selectedView === "all" || f.section === selectedView)
+        .forEach(f => {
+          const li = document.createElement("li");
+          li.textContent = `${f.name} - ID: ${f.id} ${selectedView === "all" ? `( ${f.section} )` : ""}`;
+          
+          const deleteBtn = document.createElement("button");
+          deleteBtn.innerHTML = "<span style='font-size:20px'>🗑️</span>";
+          deleteBtn.style.marginRight = "10px";
+          deleteBtn.onclick = () => deleteFriend(f.id);
+          li.insertBefore(deleteBtn, li.firstChild);
+          
+          const copyBtn = document.createElement("button");
+          copyBtn.innerHTML = "<span style='font-size:20px'>📋</span>";
+          copyBtn.style.marginRight = "10px";
+          copyBtn.onclick = () => {
+            navigator.clipboard.writeText(f.id);
+            alert("تم نسخ ID بنجاح!");
+          };
+          li.insertBefore(copyBtn, li.firstChild);
+          
+          list.appendChild(li);
+        });
+    }
+    
+    function deleteFriend(friendId) {
+      const users = getUsers();
+      const user = users[currentUser];
+      user.friends = user.friends.filter(f => f.id !== friendId);
+      saveUsers(users);
+      renderFriendsView();
+    }
+    
+    function showSectionsList() {
+      const users = getUsers();
+      const user = users[currentUser];
+      let sectionsList = "الأقسام:\n\n";
+      
+      user.sections.forEach(section => {
+        sectionsList += `${section} (${user.friends.filter(f => f.section === section).length} حساب) \n`;
+      });
+      
+      const shouldDelete = confirm(`${sectionsList}\nهل تريد حذف قسم؟`);
+      if (shouldDelete) {
+        const sectionToDelete = prompt("أدخل اسم القسم الذي تريد حذفه:");
+        if (sectionToDelete && user.sections.includes(sectionToDelete)) {
+          user.sections = user.sections.filter(s => s !== sectionToDelete);
+          user.friends = user.friends.filter(f => f.section !== sectionToDelete);
+          saveUsers(users);
+          updateSections();
+          renderFriendsView();
+          alert(`تم حذف قسم ${sectionToDelete} بنجاح!`);
+        } else {
+          alert("اسم القسم غير صحيح أو غير موجود.");
+        }
+      }
+    }
+  </script>
+
+</body>
+</html>
