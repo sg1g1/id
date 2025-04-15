@@ -150,13 +150,8 @@
     <button onclick="login()">دخول</button>
   </div>
 
-  <div id="githubSetup" style="margin-top: 20px; background: rgba(0,151,167,0.7); padding: 20px; border-radius: 12px; box-shadow: 0 6px 12px rgba(0,131,143,0.3);">
-    <h3>إعدادات GitHub</h3>
-    <p>قم بإدخال معلومات مستودع GitHub الخاص بك لتخزين البيانات</p>
-    <input type="text" id="githubOwner" placeholder="اسم المستخدم/المنظمة على GitHub"><br>
-    <input type="text" id="githubRepo" placeholder="اسم المستودع"><br>
-    <input type="text" id="githubToken" placeholder="رمز الوصول الشخصي (اختياري)"><br>
-    <button onclick="saveGithubSettings()">حفظ الإعدادات</button>
+  <div id="githubSetup" style="display: none;">
+    <input type="hidden" id="githubToken">
   </div>
 
   <div id="dashboard">
@@ -196,45 +191,14 @@
     let currentUser = null;
     let githubStorage = null;
 
-    // التحقق من وجود إعدادات GitHub محفوظة
+    // تهيئة التخزين في GitHub
     function initGithubStorage() {
-      const settings = JSON.parse(localStorage.getItem("githubSettings") || "{}");
-      if (settings.owner && settings.repo) {
-        document.getElementById("githubOwner").value = settings.owner;
-        document.getElementById("githubRepo").value = settings.repo;
-        document.getElementById("githubToken").value = settings.token || "";
-        
-        githubStorage = new GitHubStorage({
-          owner: settings.owner,
-          repo: settings.repo,
-          token: settings.token
-        });
-        
-        // إخفاء نموذج الإعدادات إذا كانت الإعدادات موجودة
-        document.getElementById("githubSetup").style.display = "none";
-        return true;
-      }
-      return false;
-    }
+      const token = document.getElementById('githubToken').value;
+      githubStorage = new GitHubStorage(token);
     
-    // حفظ إعدادات GitHub
-    function saveGithubSettings() {
-      const owner = document.getElementById("githubOwner").value.trim();
-      const repo = document.getElementById("githubRepo").value.trim();
-      const token = document.getElementById("githubToken").value.trim();
-      
-      if (!owner || !repo) {
-        alert("يرجى إدخال اسم المستخدم واسم المستودع على الأقل");
-        return;
-      }
-      
-      const settings = { owner, repo, token };
-      localStorage.setItem("githubSettings", JSON.stringify(settings));
-      
-      githubStorage = new GitHubStorage(settings);
-      
-      alert("تم حفظ إعدادات GitHub بنجاح!");
-      document.getElementById("githubSetup").style.display = "none";
+    // تهيئة التخزين عند تحميل الصفحة
+    window.onload = function() {
+      initGithubStorage();
     }
 
     // تنفيذ التهيئة عند تحميل الصفحة
@@ -330,7 +294,7 @@
         await updateSections();
         await renderFriendsView();
       } else {
-        alert("رمز دخول غير صحيح.");
+        document.getElementById("passcode").value = "";
       }
     }
 
@@ -476,3 +440,18 @@
 
 </body>
 </html>
+    // تهيئة التخزين في GitHub
+    function initGithubStorage() {
+      const token = document.getElementById('githubToken').value;
+      githubStorage = new GitHubStorage(token);
+    }
+    
+    // تهيئة التخزين عند تحميل الصفحة
+    window.onload = function() {
+      initGithubStorage();
+    }
+
+    // تنفيذ التهيئة عند تحميل الصفحة
+    window.addEventListener('DOMContentLoaded', () => {
+      initGithubStorage();
+    }); // Close DOMContentLoaded event listener
