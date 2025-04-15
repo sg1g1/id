@@ -285,17 +285,27 @@
 
     async function login() {
       const passcode = document.getElementById('passcode').value.trim();
-      const users = await getUsers();
+      if (!passcode) {
+        alert("يرجى إدخال رمز الدخول");
+        return;
+      }
 
-      if (users[passcode]) {
-        currentUser = passcode;
-        document.getElementById("auth").style.display = "none";
-        document.getElementById("dashboard").style.display = "block";
-        document.getElementById("playerName").textContent = users[passcode].username;
-        await updateSections();
-        await renderFriendsView();
-      } else {
-        document.getElementById("passcode").value = "";
+      try {
+        const users = await getUsers();
+        if (users[passcode]) {
+          currentUser = passcode;
+          document.getElementById("auth").style.display = "none";
+          document.getElementById("dashboard").style.display = "block";
+          document.getElementById("playerName").textContent = users[passcode].username;
+          await updateSections();
+          await renderFriendsView();
+        } else {
+          alert("رمز الدخول غير صحيح");
+          document.getElementById("passcode").value = "";
+        }
+      } catch (error) {
+        console.error('خطأ في تسجيل الدخول:', error);
+        alert("حدث خطأ أثناء تسجيل الدخول. يرجى المحاولة مرة أخرى.");
       }
     }
 
