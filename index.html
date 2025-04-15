@@ -4,17 +4,34 @@
   <meta charset="UTF-8" />
   <title>حسابات الألعاب</title>
   <style>
+    :root {
+      --bg-color: #e0f7fa;
+      --text-color: #006064;
+      --heading-color: #00838f;
+      --input-bg: #ffffff;
+      --card-bg: rgba(178, 235, 242, 0.7);
+    }
+
+    .dark-mode {
+      --bg-color: #001e21;
+      --text-color: #b2ebf2;
+      --heading-color: #80deea;
+      --input-bg: #002f34;
+      --card-bg: rgba(0, 30, 33, 0.7);
+    }
+
     body { 
       font-family: 'Segoe UI', Arial, sans-serif; 
       text-align: center; 
       padding: 30px; 
       direction: rtl; 
-      background-color: #e0f7fa; 
-      color: #006064;
+      background-color: var(--bg-color); 
+      color: var(--text-color);
+      transition: all 0.3s ease;
     }
     
     h2, h3, h4 {
-      color: #00838f;
+      color: var(--heading-color);
       text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
     }
     
@@ -25,8 +42,14 @@
       border: none; 
       border-radius: 8px; 
       box-shadow: 0 2px 5px rgba(0,131,143,0.2); 
-      background-color: #ffffff; 
+      background-color: var(--input-bg);
+      color: var(--text-color);
       transition: all 0.3s ease;
+    }
+
+    input::placeholder {
+      color: var(--text-color);
+      opacity: 0.7;
     }
     
     input:focus, select:focus {
@@ -67,7 +90,7 @@
     
     #addSectionDiv { 
       margin: 25px 0; 
-      background: rgba(178, 235, 242, 0.7); 
+      background: var(--card-bg); 
       padding: 20px; 
       border-radius: 12px; 
       box-shadow: 0 4px 8px rgba(0,131,143,0.2);
@@ -123,7 +146,8 @@
     }
     
     #friendList li {
-      background: rgba(255,255,255,0.8);
+      background: var(--input-bg);
+      color: var(--text-color);
       margin: 10px 0;
       padding: 15px;
       border-radius: 8px;
@@ -137,9 +161,27 @@
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0,131,143,0.3);
     }
+    .theme-btn {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--input-bg);
+      color: var(--text-color);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      z-index: 1000;
+    }
   </style>
 </head>
 <body>
+  <button class="theme-btn" onclick="toggleDarkMode()" title="تبديل المظهر">🌓</button>
 
   <h2 id="loginTitle">تسجيل أو دخول</h2>
 
@@ -189,6 +231,13 @@
   <script src="github-api.js"></script>
   
   <script>
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+    }
+
+
+
     let currentUser = null;
     let githubStorage = null;
 
@@ -219,6 +268,15 @@
     // تنفيذ التهيئة عند تحميل الصفحة
     window.addEventListener('DOMContentLoaded', () => {
       initGithubStorage();
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+      
+      const savedColor = localStorage.getItem('themeColor');
+      if (savedColor) {
+        document.getElementById('themeColor').value = savedColor;
+        changeThemeColor(savedColor);
+      }
     });
 
     // وظائف للتعامل مع البيانات
@@ -315,6 +373,14 @@
         const users = await getUsers();
 
         if (users && users[passcode]) {
+          // بدء المزامنة التلقائية للبيانات
+          githubStorage.startPolling(async (updatedData) => {
+            if (updatedData[passcode]) {
+              document.getElementById("playerName").textContent = updatedData[passcode].username;
+              await updateSections();
+              await renderFriendsView();
+            }
+          });
           currentUser = passcode;
           // حفظ حالة تسجيل الدخول
           localStorage.setItem('currentUser', passcode);
@@ -341,6 +407,10 @@
     function logout() {
       currentUser = null;
       localStorage.removeItem('currentUser');
+      // إيقاف المزامنة التلقائية
+      if (githubStorage) {
+        githubStorage.stopPolling();
+      }
       document.getElementById("auth").style.display = "block";
       document.getElementById("dashboard").style.display = "none";
       document.getElementById("loginTitle").style.display = "block";
@@ -485,6 +555,15 @@
     // تنفيذ التهيئة عند تحميل الصفحة
     window.addEventListener('DOMContentLoaded', () => {
       initGithubStorage();
+      if (localStorage.getItem('darkMode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+      
+      const savedColor = localStorage.getItem('themeColor');
+      if (savedColor) {
+        document.getElementById('themeColor').value = savedColor;
+        changeThemeColor(savedColor);
+      }
     });
   </script>
 </body>
